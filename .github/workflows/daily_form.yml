@@ -33,7 +33,7 @@ jobs:
         env:
           AUTH_JSON_SECRET: ${{ secrets.AUTH_JSON }}
         run: |
-          python -c "import os, sys; sec = os.environ.get('AUTH_JSON_SECRET', '').strip(); print('Secret length:', len(sec)); sys.exit('ERROR: AUTH_JSON secret is missing! Please add it in GitHub Settings -> Secrets -> Actions') if not sec else open('auth.json', 'w', encoding='utf-8').write(sec)"
+          python -c "import os, sys, base64, json; sec = os.environ.get('AUTH_JSON_SECRET', '').strip(); sys.exit('ERROR: AUTH_JSON secret is missing from GitHub Repository Secrets!') if not sec else None; data = base64.b64decode(sec).decode('utf-8') if not sec.startswith('{') else sec; json.loads(data); open('auth.json', 'w', encoding='utf-8').write(data); print('auth.json successfully validated and restored!')"
 
       - name: Run Form Submission Bot
         run: |
