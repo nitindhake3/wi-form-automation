@@ -1,12 +1,10 @@
-# 🤖 Google Form Auto-Fill Bot (GitHub Actions Cloud Edition)
-
-A 100% serverless, automated Google Form submission bot powered by **Python**, **Playwright**, and **GitHub Actions**.
+# 🤖Google Form Auto-Fill Bot(Specially created for WI)
 
 Designed specifically for restricted Google Forms requiring Google account authentication (e.g. `@kalvium.community`), automatically submitting your form every **Monday through Friday at 11:00 AM IST** without requiring your laptop to be turned on!
 
 ---
 
-## 👥 How to Set Up This Bot For Yourself (Step-by-Step Guide for Friends)
+## 👥 How to Set Up This Bot For Yourself (Step-by-Step Guide)
 
 Follow these simple steps to deploy your own automated Google Form submission bot in less than 5 minutes!
 
@@ -108,27 +106,7 @@ python main.py --setup-auth
 
 ---
 
-## 🛠️ Project Structure
-
-```
-wi-form-automation/
-├── .github/workflows/
-│   └── daily_form.yml   # GitHub Actions cron workflow (Mon-Fri 11:00 AM IST)
-├── main.py              # CLI entry point (--setup-auth, --run-now, default scheduler)
-├── form_handler.py      # Resilient Playwright multi-page Google Form automation engine
-├── auth.py              # Google Account authentication & session validator
-├── config.py            # Configuration loader & validator
-├── print_secret.py      # Helper script to format auth.json for GitHub Secrets
-├── logger.py            # Console and file logger
-├── config.json          # Form configuration (URL, submit_time, timezone, answers)
-├── requirements.txt     # Python package dependencies
-├── .gitignore           # Keeps private auth.json out of git commits
-└── README.md            # User guide and setup instructions
-```
-
----
-
-## ❓ Frequently Asked Questions (FAQ)
+## THE QUESTION'S WILL GET IN YOUR MIND❓ (FAQ)
 
 <details>
 <summary><b>Does my laptop need to stay turned on?</b></summary>
