@@ -1,0 +1,54 @@
+name: Daily Google Form Auto-Fill Bot
+
+on:
+  schedule:
+    # 05:30 AM UTC = 11:00 AM IST (Asia/Kolkata), Monday through Friday
+    - cron: '30 5 * * 1-5'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab anytime
+
+jobs:
+  submit-form:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Chromium Browser
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Restore Auth Session from GitHub Secret
+        env:
+          AUTH_JSON_SECRET: ${{ secrets.AUTH_JSON }}
+        run: |
+          if [ -z "$AUTH_JSON_SECRET" ]; then
+            echo "ERROR: AUTH_JSON secret is missing from GitHub Repository Secrets!"
+            exit 1
+          fi
+          echo "$AUTH_JSON_SECRET" > auth.json
+          echo "auth.json successfully created from secrets."
+
+      - name: Run Form Submission Bot
+        run: |
+          python main.py --run-now
+
+      - name: Upload Screenshots on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: screenshots/
+          if-no-files-found: ignore

@@ -1,0 +1,15 @@
+# Authentication session (stored in GitHub Repository Secrets AUTH_JSON)
+auth.json
+
+# Local logs and screenshots
+logs/
+screenshots/
+
+# Python cache & virtual environment
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Environment variables
+.env
