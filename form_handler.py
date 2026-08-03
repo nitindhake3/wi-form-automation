@@ -141,9 +141,19 @@ class FormHandler:
                         "Google authentication session has EXPIRED! Please run 'python main.py --setup-auth' to re-authenticate."
                     )
 
-                page.wait_for_selector("form, div[role='heading']", timeout=30000)
+                page.wait_for_selector("form, div[role='heading'], div.freebirdFormviewqaFormrecConfirmationMessage", timeout=30000)
                 logger.info("Google Form loaded successfully.")
                 time.sleep(1.5)
+
+                # Check if form was already submitted today
+                already_submitted = (
+                    page.locator("text='You\'ve already responded'")
+                    .or_(page.locator("text='already responded'"))
+                    .or_(page.locator("text='Your response has been recorded'"))
+                )
+                if already_submitted.first.is_visible():
+                    logger.info("SUCCESS: Form has already been submitted!")
+                    return True
 
                 max_pages = 10
                 page_count = 0
@@ -190,6 +200,8 @@ class FormHandler:
                             .or_(page.locator("text='Submit another response'"))
                             .or_(page.locator("text='response has been recorded'"))
                             .or_(page.locator("text='Thank you for filling'"))
+                            .or_(page.locator("text='You\'ve already responded'"))
+                            .or_(page.locator("text='already responded'"))
                             .or_(page.locator("div.freebirdFormviewqaFormrecConfirmationMessage"))
                         )
 
