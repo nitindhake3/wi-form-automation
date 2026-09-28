@@ -106,6 +106,17 @@ python main.py --setup-auth
 
 ---
 
+#### Command / Action to re-autenticate 
+1.	python main.py --setup-auth
+2.	Log into your @kalvium.community account
+3.	Press ENTER in the terminal
+4.	python main.py --run-now
+5.	python print_secret.py
+6.	Copy the Base64 output
+7.	Update the AUTH_JSON GitHub Secret
+8.	Re-run daily_form.yml
+
+
 ## THE QUESTION'S WILL GET IN YOUR MIND❓ (FAQ)
 
 <details>
