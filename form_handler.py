@@ -102,10 +102,10 @@ class FormHandler:
                     break
                 logger.info("Entering password and submitting login challenge...")
                 pwd_inp.first.fill(password)
-                next_btn = page.locator("#passwordNext, button:has-text('Next'), div[id='passwordNext']").first
-                next_btn.click()
-                time.sleep(4)
-                page.wait_for_load_state("networkidle")
+                time.sleep(0.5)
+                pwd_inp.first.press("Enter")
+                time.sleep(5)
+                page.wait_for_load_state("domcontentloaded")
                 continue
 
             # 2. Check Email Field
@@ -116,10 +116,10 @@ class FormHandler:
                     break
                 logger.info(f"Entering email '{target_email}'...")
                 email_inp.first.fill(target_email)
-                next_btn = page.locator("#identifierNext, button:has-text('Next'), div[id='identifierNext']").first
-                next_btn.click()
+                time.sleep(0.5)
+                email_inp.first.press("Enter")
                 time.sleep(3)
-                page.wait_for_load_state("networkidle")
+                page.wait_for_load_state("domcontentloaded")
                 continue
 
             # 3. Check Account Chooser page (Account selection)
@@ -137,7 +137,7 @@ class FormHandler:
                 logger.info("Found account item on Account Chooser screen. Clicking account...")
                 try:
                     account_btn.click()
-                    time.sleep(3)
+                    time.sleep(4)
                     page.wait_for_load_state("domcontentloaded")
                     continue
                 except Exception as e:
