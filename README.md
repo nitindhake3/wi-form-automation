@@ -79,7 +79,7 @@ python main.py --setup-auth
 
 ---
 
-### Step 5: Copy your Secret to GitHub Repository Secrets
+### Step 5: Add Secrets to GitHub Repository Secrets
 
 1. Run the secret helper script in your terminal:
    ```bash
@@ -88,10 +88,13 @@ python main.py --setup-auth
 2. Copy the single-line Base64 secret text printed on your screen.
 3. Open your forked repository on **GitHub.com**.
 4. Go to **Settings** ➔ **Secrets and variables** ➔ **Actions**.
-5. Click **New repository secret**.
-6. Set **Name**: `AUTH_JSON`
-7. Set **Value**: Paste your copied secret string.
-8. Click **Add secret**.
+5. Click **New repository secret**:
+   - **Name**: `AUTH_JSON`
+   - **Value**: Paste your copied secret string.
+6. *(Highly Recommended)* Click **New repository secret** again:
+   - **Name**: `GOOGLE_PASSWORD`
+   - **Value**: Your `@kalvium.community` Google Account Password.
+   *(This ensures that if Google session cookies expire or are rotated by Google security checks, GitHub Actions will automatically re-log into your account without failing!)*
 
 ---
 
@@ -120,16 +123,22 @@ python main.py --setup-auth
 ## THE QUESTION'S WILL GET IN YOUR MIND❓ (FAQ)
 
 <details>
+<summary><b>What if Google says "session expired"?</b></summary>
+Google session cookies expire periodically or when accessed from a new cloud IP (GitHub Actions runner). By adding <code>GOOGLE_PASSWORD</code> to your repository secrets, the bot automatically handles Google Account Chooser and password login, renewing the session state dynamically without failing!
+</details>
+
+<details>
 <summary><b>Does my laptop need to stay turned on?</b></summary>
 <b>No!</b> GitHub Actions runs on GitHub's cloud servers. Your laptop can be turned off, asleep, or disconnected from the internet.
 </details>
 
 <details>
 <summary><b>Is my Google password or login safe?</b></summary>
-<b>Yes.</b> Your password is never stored or committed. Only encrypted browser session tokens are saved inside your private GitHub Repository Secrets.
+<b>Yes.</b> GitHub Repository Secrets are encrypted at rest by GitHub and masked in all workflow logs.
 </details>
 
 <details>
 <summary><b>Where can I check if my form was submitted today?</b></summary>
 Check the <b>Actions</b> tab of your GitHub repository. Every daily run will show a green checkmark (<code>✓</code>) along with execution logs.
 </details>
+

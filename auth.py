@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -8,6 +9,21 @@ from logger import get_logger
 logger = get_logger("auth")
 
 AUTH_FILE = Path("auth.json")
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+CHROMIUM_ARGS = [
+    "--disable-blink-features=AutomationControlled",
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-infobars",
+    "--window-size=1280,900",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+]
+
+STEALTH_INIT_SCRIPT = """
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+"""
 
 def is_auth_valid(auth_path: Path = AUTH_FILE) -> bool:
     """Checks whether the auth.json file exists and contains stored cookies/origins."""
@@ -34,19 +50,34 @@ def is_auth_valid(auth_path: Path = AUTH_FILE) -> bool:
 
 def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.google.com") -> bool:
     """
-    Launches a headful browser for the user to log into their @kalvium.community Google account.
+    Launches a headful browser for the user to log into their Google account.
     Saves the browser storage state to auth.json upon user confirmation.
     """
     logger.info("=== Starting One-Time Google Authentication Setup ===")
-    logger.info("A browser window will open. Please log into your @kalvium.community Google Account.")
+    logger.info("A browser window will open. Please log into your Google Account.")
 
     with sync_playwright() as p:
-        # Launch interactive headful browser
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(viewport={"width": 1280, "height": 800})
+        # Launch interactive headful browser with stealth settings
+        browser = p.chromium.launch(
+            headless=False,
+            args=CHROMIUM_ARGS
+        )
+        context = browser.new_context(
+            user_agent=DEFAULT_USER_AGENT,
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+            timezone_id="Asia/Kolkata",
+            extra_http_headers={
+                "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Windows"',
+                "accept-language": "en-US,en;q=0.9"
+            }
+        )
+        context.add_init_script(STEALTH_INIT_SCRIPT)
         page = context.new_page()
 
-        page.goto(target_url)
+        page.goto(target_url, wait_until="networkidle")
 
         print("\n" + "=" * 70)
         print("ACTION REQUIRED: Log into your Google Account in the opened browser window.")
@@ -60,6 +91,15 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
             logger.warning("Authentication setup cancelled by user.")
             browser.close()
             return False
+
+        # Navigate to target form URL if available to ensure docs.google.com cookies are generated
+        if target_url and "docs.google.com" in target_url:
+            try:
+                logger.info("Navigating to Google Form to capture form-specific session state...")
+                page.goto(target_url, wait_until="networkidle", timeout=30000)
+                time.sleep(2)
+            except Exception as e:
+                logger.warning(f"Could not load form URL during auth setup: {e}")
 
         # Save storage state
         context.storage_state(path=str(auth_path))
@@ -76,3 +116,4 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
 
 if __name__ == "__main__":
     setup_auth()
+
