@@ -78,7 +78,7 @@ class FormHandler:
 
         logger.info(f"Attempting automated Google re-authentication for account '{target_email or 'Unknown'}'...")
 
-        for attempt in range(5):
+        for attempt in range(6):
             url = page.url
             if "docs.google.com/forms" in url and "accounts.google.com" not in url:
                 logger.info("Re-authentication successful! Back on Google Form URL.")
@@ -92,8 +92,35 @@ class FormHandler:
             if "accounts.google.com" not in url and "signin" not in url:
                 break
 
-            # 1. Check Password Field
-            pwd_inp = page.locator("input[type='password'], input[name='Passwd']")
+            # 1. Check Account Chooser screen FIRST (Account selection)
+            account_btn = None
+            if target_email:
+                btn_match = page.locator(
+                    f"div[data-identifier='{target_email}'], "
+                    f"div:has-text('{target_email}'), "
+                    f"li:has-text('{target_email}'), "
+                    f"div[data-email='{target_email}']"
+                )
+                if btn_match.count() > 0 and btn_match.last.is_visible():
+                    account_btn = btn_match.last
+
+            if not account_btn:
+                fallback_match = page.locator("div[data-identifier], div.wL32ec, div.Jh9pfc")
+                if fallback_match.count() > 0 and fallback_match.first.is_visible():
+                    account_btn = fallback_match.first
+
+            if account_btn and account_btn.is_visible():
+                logger.info("Found account item on Account Chooser screen. Clicking account...")
+                try:
+                    account_btn.click()
+                    time.sleep(3)
+                    page.wait_for_load_state("domcontentloaded")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Failed to click account item: {e}")
+
+            # 2. Check Password Field
+            pwd_inp = page.locator("input[type='password'], input[name='Passwd'], input[name='password']")
             if pwd_inp.count() > 0 and pwd_inp.first.is_visible():
                 if not password:
                     logger.warning(
@@ -104,11 +131,19 @@ class FormHandler:
                 pwd_inp.first.fill(password)
                 time.sleep(0.5)
                 pwd_inp.first.press("Enter")
+
+                next_btn = page.locator("#passwordNext, button:has-text('Next'), div[role='button']:has-text('Next')")
+                if next_btn.count() > 0 and next_btn.first.is_visible():
+                    try:
+                        next_btn.first.click()
+                    except Exception:
+                        pass
+
                 time.sleep(5)
                 page.wait_for_load_state("domcontentloaded")
                 continue
 
-            # 2. Check Email Field
+            # 3. Check Email Field
             email_inp = page.locator("input[type='email'], input[name='identifier']")
             if email_inp.count() > 0 and email_inp.first.is_visible():
                 if not target_email:
@@ -118,30 +153,17 @@ class FormHandler:
                 email_inp.first.fill(target_email)
                 time.sleep(0.5)
                 email_inp.first.press("Enter")
+
+                next_btn = page.locator("#identifierNext, button:has-text('Next'), div[role='button']:has-text('Next')")
+                if next_btn.count() > 0 and next_btn.first.is_visible():
+                    try:
+                        next_btn.first.click()
+                    except Exception:
+                        pass
+
                 time.sleep(3)
                 page.wait_for_load_state("domcontentloaded")
                 continue
-
-            # 3. Check Account Chooser page (Account selection)
-            account_btn = None
-            if target_email:
-                btn_match = page.locator(f"div[data-identifier='{target_email}'], div:has-text('{target_email}')")
-                if btn_match.count() > 0 and btn_match.last.is_visible():
-                    account_btn = btn_match.last
-            if not account_btn:
-                fallback_match = page.locator("div[data-identifier], div.wL32ec")
-                if fallback_match.count() > 0 and fallback_match.first.is_visible():
-                    account_btn = fallback_match.first
-
-            if account_btn and account_btn.is_visible():
-                logger.info("Found account item on Account Chooser screen. Clicking account...")
-                try:
-                    account_btn.click()
-                    time.sleep(4)
-                    page.wait_for_load_state("domcontentloaded")
-                    continue
-                except Exception as e:
-                    logger.warning(f"Failed to click account item: {e}")
 
             time.sleep(2)
 
@@ -151,33 +173,104 @@ class FormHandler:
         """Fills all visible inputs, radios, checkboxes, and textareas on the currently active form page."""
         time.sleep(1.0)
 
-        # 1. Fill all visible textareas (Paragraph questions)
+        # Process each question block container on the page
+        question_blocks = page.locator("div[role='listitem'], div.geStF, div.QrBrvd").all()
+
+        if question_blocks:
+            for block in question_blocks:
+                try:
+                    if not block.is_visible():
+                        continue
+
+                    # Extract question text from heading inside block
+                    heading_el = block.locator("div[role='heading'], span.M7V2ed, div.hoP2b").first
+                    q_text = heading_el.inner_text().strip() if heading_el.count() > 0 else ""
+
+                    # Check for textareas (paragraph text)
+                    textareas = block.locator("textarea").all()
+                    for ta in textareas:
+                        if ta.is_visible():
+                            ta.scroll_into_view_if_needed()
+                            val_to_fill = "."
+                            for ans_q, ans_val in resolved_answers.items():
+                                if ans_q.lower() in q_text.lower() or q_text.lower() in ans_q.lower():
+                                    val_to_fill = str(ans_val)
+                                    break
+                            ta.click()
+                            ta.fill(val_to_fill)
+                            logger.info(f"Filled textarea with '{val_to_fill}'")
+
+                    # Check for short text inputs
+                    inputs = block.locator("input[type='text'], input[type='email'], input[type='number']").all()
+                    for inp in inputs:
+                        if inp.is_visible():
+                            inp.scroll_into_view_if_needed()
+                            val_to_fill = "."
+                            for ans_q, ans_val in resolved_answers.items():
+                                if ans_q.lower() in q_text.lower() or q_text.lower() in ans_q.lower():
+                                    val_to_fill = str(ans_val)
+                                    break
+                            inp.click()
+                            inp.fill(val_to_fill)
+                            logger.info(f"Filled text input with '{val_to_fill}'")
+
+                    # Check radios
+                    radios = block.locator("div[role='radio']").all()
+                    for radio in radios:
+                        if not radio.is_visible():
+                            continue
+                        radio_text = (radio.get_attribute("aria-label") or radio.inner_text() or "").strip()
+                        for q_title, answer_val in resolved_answers.items():
+                            if str(answer_val).lower() in radio_text.lower() or radio_text.lower() in str(answer_val).lower():
+                                radio.scroll_into_view_if_needed()
+                                self._random_delay(0.2, 0.5)
+                                radio.click()
+                                logger.info(f"Selected radio option: '{radio_text}'")
+                                break
+
+                    # Check checkboxes
+                    checkboxes = block.locator("div[role='checkbox']").all()
+                    for cb in checkboxes:
+                        if not cb.is_visible():
+                            continue
+                        cb_text = (cb.get_attribute("aria-label") or cb.inner_text() or "").strip()
+                        for q_title, answer_val in resolved_answers.items():
+                            if str(answer_val).lower() in cb_text.lower() or "record" in cb_text.lower():
+                                cb.scroll_into_view_if_needed()
+                                self._random_delay(0.2, 0.5)
+                                if cb.get_attribute("aria-checked") != "true":
+                                    cb.click()
+                                logger.info(f"Checked checkbox: '{cb_text}'")
+                                break
+
+                except Exception as e:
+                    logger.warning(f"Error processing question block: {e}")
+
+        # Fallback global filling for any unhandled visible inputs
         textareas = page.locator("textarea").all()
         for ta in textareas:
             try:
-                if ta.is_visible():
+                if ta.is_visible() and not ta.input_value():
                     ta.scroll_into_view_if_needed()
-                    self._random_delay(0.3, 0.8)
+                    self._random_delay(0.2, 0.5)
                     ta.click()
                     ta.fill(".")
                     logger.info("Filled visible textarea with '.'")
-            except Exception as e:
-                logger.warning(f"Could not fill textarea: {e}")
+            except Exception:
+                pass
 
-        # 2. Fill all visible short text inputs
         inputs = page.locator("input[type='text'], input[type='email'], input[type='number']").all()
         for inp in inputs:
             try:
-                if inp.is_visible():
+                if inp.is_visible() and not inp.input_value():
                     inp.scroll_into_view_if_needed()
-                    self._random_delay(0.3, 0.8)
+                    self._random_delay(0.2, 0.5)
                     inp.click()
                     inp.fill(".")
                     logger.info("Filled visible text input with '.'")
-            except Exception as e:
-                logger.warning(f"Could not fill text input: {e}")
+            except Exception:
+                pass
 
-        # 3. Match radio buttons for configured answers
         radios = page.locator("div[role='radio']").all()
         for radio in radios:
             try:
@@ -187,14 +280,13 @@ class FormHandler:
                 for q_title, answer_val in resolved_answers.items():
                     if str(answer_val).lower() in radio_text.lower() or radio_text.lower() in str(answer_val).lower():
                         radio.scroll_into_view_if_needed()
-                        self._random_delay(0.3, 0.8)
+                        self._random_delay(0.2, 0.5)
                         radio.click()
                         logger.info(f"Selected radio option: '{radio_text}'")
                         break
-            except Exception as e:
-                logger.warning(f"Could not select radio: {e}")
+            except Exception:
+                pass
 
-        # 4. Match checkboxes for configured answers
         checkboxes = page.locator("div[role='checkbox']").all()
         for cb in checkboxes:
             try:
@@ -204,13 +296,13 @@ class FormHandler:
                 for q_title, answer_val in resolved_answers.items():
                     if str(answer_val).lower() in cb_text.lower() or "record" in cb_text.lower():
                         cb.scroll_into_view_if_needed()
-                        self._random_delay(0.3, 0.8)
+                        self._random_delay(0.2, 0.5)
                         if cb.get_attribute("aria-checked") != "true":
                             cb.click()
                         logger.info(f"Checked checkbox: '{cb_text}'")
                         break
-            except Exception as e:
-                logger.warning(f"Could not select checkbox: {e}")
+            except Exception:
+                pass
 
     def submit_form_once(self, headless: bool = True) -> bool:
         """Executes a single attempt to open, fill all pages, and submit the Google Form."""

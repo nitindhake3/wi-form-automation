@@ -19,10 +19,16 @@ CHROMIUM_ARGS = [
     "--window-size=1280,900",
     "--disable-dev-shm-usage",
     "--disable-gpu",
+    "--no-first-run",
+    "--no-service-autorun",
+    "--password-store=basic",
 ]
 
 STEALTH_INIT_SCRIPT = """
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    window.chrome = { runtime: {} };
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
 """
 
 def is_auth_valid(auth_path: Path = AUTH_FILE) -> bool:

@@ -36,7 +36,7 @@ jobs:
           AUTH_JSON_SECRET: ${{ secrets.AUTH_JSON }}
           GOOGLE_PASSWORD: ${{ secrets.GOOGLE_PASSWORD }}
         run: |
-          python -c "import os, sys, base64, json; sec = os.environ.get('AUTH_JSON_SECRET', '').strip(); pwd = os.environ.get('GOOGLE_PASSWORD', '').strip(); (open('auth.json', 'w').write('{\"cookies\":[{\"name\":\"init\",\"value\":\"1\",\"domain\":\".google.com\",\"path\":\"/\"}],\"origins\":[]}') if pwd else sys.exit('ERROR: AUTH_JSON secret is missing from GitHub Repository Secrets!')) if not sec else open('auth.json', 'w', encoding='utf-8').write(base64.b64decode(sec).decode('utf-8') if not sec.startswith('{') else sec); print('auth.json successfully prepared!')"
+          python restore_auth.py
 
       - name: Run Form Submission Bot
         env:
