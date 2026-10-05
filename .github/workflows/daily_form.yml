@@ -34,14 +34,12 @@ jobs:
       - name: Restore Auth Session from Secret
         env:
           AUTH_JSON_SECRET: ${{ secrets.AUTH_JSON }}
-          GOOGLE_PASSWORD: ${{ secrets.GOOGLE_PASSWORD }}
         run: |
           python restore_auth.py
 
       - name: Run Form Submission Bot
         env:
           GOOGLE_EMAIL: ${{ secrets.GOOGLE_EMAIL }}
-          GOOGLE_PASSWORD: ${{ secrets.GOOGLE_PASSWORD }}
           AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
         run: |
           python main.py --run-now

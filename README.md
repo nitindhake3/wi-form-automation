@@ -91,10 +91,6 @@ python main.py --setup-auth
 5. Click **New repository secret**:
    - **Name**: `AUTH_JSON`
    - **Value**: Paste your copied secret string.
-6. *(Highly Recommended)* Click **New repository secret** again:
-   - **Name**: `GOOGLE_PASSWORD`
-   - **Value**: Your `@kalvium.community` Google Account Password.
-   *(This ensures that if Google session cookies expire or are rotated by Google security checks, GitHub Actions will automatically re-log into your account without failing!)*
 
 ---
 
@@ -124,7 +120,7 @@ python main.py --setup-auth
 
 <details>
 <summary><b>What if Google says "session expired"?</b></summary>
-Google session cookies expire periodically or when accessed from a new cloud IP (GitHub Actions runner). By adding <code>GOOGLE_PASSWORD</code> to your repository secrets, the bot automatically handles Google Account Chooser and password login, renewing the session state dynamically without failing!
+Google session cookies expire periodically or when accessed from a new cloud IP (GitHub Actions runner). Simply re-run <code>python main.py --setup-auth</code> locally and update your <code>AUTH_JSON</code> secret on GitHub.
 </details>
 
 <details>

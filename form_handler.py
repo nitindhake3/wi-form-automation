@@ -70,8 +70,7 @@ class FormHandler:
         """
         target_email = self._extract_target_email()
         password = (
-            os.environ.get("GOOGLE_PASSWORD")
-            or os.environ.get("AUTH_PASSWORD")
+            os.environ.get("AUTH_PASSWORD")
             or os.environ.get("PASSWORD")
             or ""
         ).strip()
@@ -124,7 +123,7 @@ class FormHandler:
             if pwd_inp.count() > 0 and pwd_inp.first.is_visible():
                 if not password:
                     logger.warning(
-                        "Password challenge prompt reached, but 'GOOGLE_PASSWORD' secret is not provided in environment."
+                        "Password challenge prompt reached, but password secret is not provided in environment."
                     )
                     break
                 logger.info("Entering password and submitting login challenge...")
@@ -346,9 +345,8 @@ class FormHandler:
                         self._take_screenshot(page, "auth_expired")
                         raise FormAuthExpiredError(
                             "Google authentication session has EXPIRED!\n"
-                            "SOLUTIONS:\n"
-                            "1. Set 'GOOGLE_PASSWORD' in your GitHub Repository Secrets to allow automated background re-login.\n"
-                            "2. Or re-run 'python main.py --setup-auth' on your laptop and update your 'AUTH_JSON' secret."
+                            "SOLUTION:\n"
+                            "Re-run 'python main.py --setup-auth' on your laptop and update your 'AUTH_JSON' secret."
                         )
 
                 page.wait_for_selector("form, div[role='heading'], div.freebirdFormviewqaFormrecConfirmationMessage", timeout=30000)

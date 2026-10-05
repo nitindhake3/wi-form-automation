@@ -7,7 +7,6 @@ from pathlib import Path
 def restore_auth():
     auth_file = Path("auth.json")
     sec = os.environ.get("AUTH_JSON_SECRET", "").strip()
-    pwd = os.environ.get("GOOGLE_PASSWORD", "").strip()
 
     if sec:
         # Strip potential wrapping quotes or whitespace
@@ -35,14 +34,7 @@ def restore_auth():
         except Exception as e:
             print(f"Error: Failed to decode Base64 AUTH_JSON secret: {e}")
 
-    if pwd:
-        print("AUTH_JSON secret is empty or invalid, but GOOGLE_PASSWORD secret is provided.")
-        print("Initializing session placeholder for automated re-login...")
-        initial_data = {"cookies": [], "origins": []}
-        auth_file.write_text(json.dumps(initial_data), encoding="utf-8")
-        return
-
-    print("ERROR: Neither AUTH_JSON nor GOOGLE_PASSWORD secrets were found in GitHub Repository Secrets!")
+    print("ERROR: AUTH_JSON secret was not found or is invalid in GitHub Repository Secrets!")
     sys.exit(1)
 
 if __name__ == "__main__":
