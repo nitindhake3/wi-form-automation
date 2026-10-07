@@ -34,8 +34,11 @@ def restore_auth():
         except Exception as e:
             print(f"Error: Failed to decode Base64 AUTH_JSON secret: {e}")
 
-    print("ERROR: AUTH_JSON secret was not found or is invalid in GitHub Repository Secrets!")
+    print("\n[ERROR] AUTH_JSON secret was not found or is invalid in GitHub Repository Secrets!")
+    print("Please run 'python main.py --setup-auth' locally, then run 'python print_secret.py' and copy the output to your 'AUTH_JSON' GitHub secret.\n")
     sys.exit(1)
 
 if __name__ == "__main__":
     restore_auth()
+
+

@@ -65,11 +65,16 @@ Examples:
     if not is_auth_valid():
         logger.error("Authentication file 'auth.json' is missing or invalid.")
         print("\n" + "=" * 70)
-        print("[WARNING] Authentication session not found!")
-        print("Please run the one-time authentication setup first:")
+        print("[ERROR] Authentication session ('auth.json') not found or expired!")
+        print("Please run the one-time authentication setup locally on your machine:")
         print("    python main.py --setup-auth")
+        print("Then generate your secret by running:")
+        print("    python print_secret.py")
+        print("And copy the output to your 'AUTH_JSON' secret in GitHub Repository Secrets.")
         print("=" * 70 + "\n")
         sys.exit(1)
+
+
 
     # Mode 2: Immediate Execution (--run-now)
     if args.run_now:

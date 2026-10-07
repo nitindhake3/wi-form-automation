@@ -375,7 +375,7 @@ class FormHandler:
                     time.sleep(1.0)
 
                     # Find all visible buttons on the page
-                    buttons = page.locator("div[role='button'], span.N2T0ea, div.uArLbf").all()
+                    buttons = page.locator("div[role='button'], span.N2T0ea, div.uArLbf, button, input[type='submit']").all()
                     submit_btn = None
                     next_btn = None
 
@@ -384,12 +384,15 @@ class FormHandler:
                             if not btn.is_visible():
                                 continue
                             txt = btn.inner_text().strip().lower()
-                            if len(txt) > 20:
+                            aria_label = (btn.get_attribute("aria-label") or "").strip().lower()
+                            value_attr = (btn.get_attribute("value") or "").strip().lower()
+                            combined_txt = f"{txt} {aria_label} {value_attr}".strip()
+                            if len(txt) > 30:
                                 continue
-                            if txt == "submit" or txt == "submit form":
+                            if "submit" in combined_txt or "submit form" in combined_txt or "send" in combined_txt:
                                 submit_btn = btn
                                 break
-                            elif txt == "next":
+                            elif "next" in combined_txt or "continue" in combined_txt:
                                 next_btn = btn
                         except Exception:
                             continue
@@ -426,7 +429,10 @@ class FormHandler:
                         self._random_delay(0.8, 1.5)
                         next_btn.click()
                         time.sleep(2.0)
-                        page.wait_for_load_state("networkidle")
+                        try:
+                            page.wait_for_load_state("networkidle", timeout=10000)
+                        except Exception:
+                            pass
                         continue
 
                     # If neither Submit nor Next button is found
