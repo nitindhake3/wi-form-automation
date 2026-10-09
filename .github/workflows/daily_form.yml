@@ -2,17 +2,18 @@ name: Daily Google Form Auto-Fill Bot
 
 on:
   schedule:
-    # Primary: 05:30 AM UTC = 11:00 AM IST (Asia/Kolkata), Monday through Friday
+    # 05:30 UTC = 11:00 AM IST (Asia/Kolkata), Monday through Friday
     - cron: '30 5 * * 1-5'
-    # Fallback: 05:45 AM UTC = 11:15 AM IST in case GitHub queue delays 05:30
-    - cron: '45 5 * * 1-5'
-  push:
-    branches: [ main, master ]
-  workflow_dispatch: # Allows manual trigger from GitHub Actions tab anytime
+  workflow_dispatch:
 
 jobs:
   submit-form:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    concurrency:
+      group: daily-google-form-submission
+      cancel-in-progress: false
 
     steps:
       - name: Checkout Code
@@ -54,4 +55,3 @@ jobs:
           name: failure-screenshots
           path: screenshots/
           if-no-files-found: ignore
-

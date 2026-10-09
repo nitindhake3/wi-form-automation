@@ -1,6 +1,6 @@
 # 🤖Google Form Auto-Fill Bot(Specially created for WI)
 
-Designed specifically for restricted Google Forms requiring Google account authentication (e.g. `@kalvium.community`), automatically submitting your form every **Monday through Friday at 11:00 AM IST** without requiring your laptop to be turned on!
+Designed specifically for restricted Google Forms requiring Google account authentication (e.g. `@kalvium.community`), automatically submitting your form every **Monday through Friday at 11:00 AM IST** without requiring your laptop to be turned on. GitHub Actions schedules are best-effort and may start late; the weekday schedule triggers once per day, and the workflow can also be started manually.
 
 ---
 
@@ -99,9 +99,9 @@ python main.py --setup-auth
 1. Go to the **Actions** tab on your GitHub repository.
 2. If GitHub prompts you with *"Workflows are disabled"*, click **I understand my workflows, go ahead and enable them**.
 3. Select **Daily Google Form Auto-Fill Bot** from the left sidebar.
-4. Click **Run workflow** ➔ **Run workflow**.
+4. Click **Run workflow** ➔ **Run workflow** to submit immediately for a manual test. Normal weekday submissions are started by the schedule; pushing code does not submit the form.
 
-🎉 **Congratulations!** Your bot will now automatically run every **Monday through Friday at 11:00 AM IST** in the cloud. You can turn off your laptop, and your daily form will continue to be submitted reliably!
+🎉 **Congratulations!** Your bot will now be scheduled every **Monday through Friday at 11:00 AM IST** in the cloud. You can turn off your laptop. Keep the `AUTH_JSON` secret current; if Google expires the saved session, create a fresh login state and update the secret.
 
 ---
 
@@ -137,4 +137,3 @@ Google session cookies expire periodically or when accessed from a new cloud IP 
 <summary><b>Where can I check if my form was submitted today?</b></summary>
 Check the <b>Actions</b> tab of your GitHub repository. Every daily run will show a green checkmark (<code>✓</code>) along with execution logs.
 </details>
-
