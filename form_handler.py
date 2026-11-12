@@ -91,34 +91,7 @@ class FormHandler:
             if "accounts.google.com" not in url and "signin" not in url:
                 break
 
-            # 1. Check Account Chooser screen FIRST (Account selection)
-            account_btn = None
-            if target_email:
-                btn_match = page.locator(
-                    f"div[data-identifier='{target_email}'], "
-                    f"div:has-text('{target_email}'), "
-                    f"li:has-text('{target_email}'), "
-                    f"div[data-email='{target_email}']"
-                )
-                if btn_match.count() > 0 and btn_match.last.is_visible():
-                    account_btn = btn_match.last
-
-            if not account_btn:
-                fallback_match = page.locator("div[data-identifier], div.wL32ec, div.Jh9pfc")
-                if fallback_match.count() > 0 and fallback_match.first.is_visible():
-                    account_btn = fallback_match.first
-
-            if account_btn and account_btn.is_visible():
-                logger.info("Found account item on Account Chooser screen. Clicking account...")
-                try:
-                    account_btn.click()
-                    time.sleep(3)
-                    page.wait_for_load_state("domcontentloaded")
-                    continue
-                except Exception as e:
-                    logger.warning(f"Failed to click account item: {e}")
-
-            # 2. Check Password Field
+            # 1. Check Password Field
             pwd_inp = page.locator("input[type='password'], input[name='Passwd'], input[name='password']")
             if pwd_inp.count() > 0 and pwd_inp.first.is_visible():
                 if not password:
@@ -141,6 +114,32 @@ class FormHandler:
                 time.sleep(5)
                 page.wait_for_load_state("domcontentloaded")
                 continue
+
+            # 2. Check Account Chooser screen (Account selection)
+            account_btn = None
+            if target_email:
+                btn_match = page.locator(
+                    f"div[role='link'][data-identifier='{target_email}'], "
+                    f"div[data-identifier='{target_email}'], "
+                    f"div[data-email='{target_email}']"
+                )
+                if btn_match.count() > 0 and btn_match.first.is_visible():
+                    account_btn = btn_match.first
+
+            if not account_btn:
+                fallback_match = page.locator("div[data-identifier], div.wL32ec, div.Jh9pfc")
+                if fallback_match.count() > 0 and fallback_match.first.is_visible():
+                    account_btn = fallback_match.first
+
+            if account_btn and account_btn.is_visible():
+                logger.info("Found account item on Account Chooser screen. Clicking account...")
+                try:
+                    account_btn.click()
+                    time.sleep(3)
+                    page.wait_for_load_state("domcontentloaded")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Failed to click account item: {e}")
 
             # 3. Check Email Field
             email_inp = page.locator("input[type='email'], input[name='identifier']")
@@ -303,34 +302,39 @@ class FormHandler:
             except Exception:
                 pass
 
-    def submit_form_once(self, headless: bool = True) -> bool:
+    def submit_form_once(self, headless: bool = True, interactive: bool = False) -> bool:
         """Executes a single attempt to open, fill all pages, and submit the Google Form."""
-        if not is_auth_valid(self.auth_file):
+        if not is_auth_valid(self.auth_file) and not interactive:
             raise FormAuthExpiredError(
-                f"Authentication file '{self.auth_file}' is missing or invalid. Please run 'python main.py --setup-auth'."
+                f"Authentication file '{self.auth_file}' is missing or invalid. Please run 'python main.py --login-and-run'."
             )
 
         resolved_answers = self.config.get_resolved_answers()
 
         with sync_playwright() as p:
-            logger.info(f"Launching Playwright browser (headless={headless}) with saved auth & stealth settings...")
+            effective_headless = False if interactive else headless
+            logger.info(f"Launching Playwright browser (headless={effective_headless}) with saved auth & stealth settings...")
             browser = p.chromium.launch(
-                headless=headless,
+                headless=effective_headless,
                 args=CHROMIUM_ARGS
             )
-            context = browser.new_context(
-                storage_state=str(self.auth_file),
-                user_agent=DEFAULT_USER_AGENT,
-                viewport={"width": 1280, "height": 900},
-                locale="en-US",
-                timezone_id="Asia/Kolkata",
-                extra_http_headers={
+            
+            context_kwargs = {
+                "user_agent": DEFAULT_USER_AGENT,
+                "viewport": {"width": 1280, "height": 900},
+                "locale": "en-US",
+                "timezone_id": "Asia/Kolkata",
+                "extra_http_headers": {
                     "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
                     "sec-ch-ua-mobile": "?0",
                     "sec-ch-ua-platform": '"Windows"',
                     "accept-language": "en-US,en;q=0.9"
                 }
-            )
+            }
+            if self.auth_file.exists():
+                context_kwargs["storage_state"] = str(self.auth_file)
+
+            context = browser.new_context(**context_kwargs)
             context.add_init_script(STEALTH_INIT_SCRIPT)
             page = context.new_page()
 
@@ -339,15 +343,61 @@ class FormHandler:
                 page.goto(self.config.form_url, wait_until="networkidle", timeout=60000)
 
                 if "accounts.google.com" in page.url or "signin" in page.url:
-                    logger.info("Redirected to Google sign-in / account chooser. Attempting automated re-authentication...")
-                    reauth_success = self._handle_google_reauth(page, context)
-                    if not reauth_success:
-                        self._take_screenshot(page, "auth_expired")
-                        raise FormAuthExpiredError(
-                            "Google authentication session has EXPIRED!\n"
-                            "SOLUTION:\n"
-                            "Re-run 'python main.py --setup-auth' on your laptop and update your 'AUTH_JSON' secret."
-                        )
+                    if interactive:
+                        logger.info("Interactive mode active: Please log in using the opened browser window.")
+                        print("\n" + "=" * 70)
+                        print("ACTION REQUIRED: Complete login in the opened browser window.")
+                        print("Enter your password and complete any verification prompts.")
+                        print("The bot will automatically detect login, save auth.json, and submit the form!")
+                        print("=" * 70 + "\n")
+
+                        target_email = self._extract_target_email()
+                        if target_email:
+                            time.sleep(1)
+                            account_btn = page.locator(
+                                f"div[role='link'][data-identifier='{target_email}'], "
+                                f"div[data-identifier='{target_email}']"
+                            ).first
+                            if account_btn.is_visible():
+                                logger.info(f"Selecting account '{target_email}' to show password prompt...")
+                                account_btn.click()
+
+                        password = (os.environ.get("AUTH_PASSWORD") or os.environ.get("PASSWORD") or "").strip()
+                        if password:
+                            time.sleep(2)
+                            pwd_inp = page.locator("input[type='password'], input[name='Passwd'], input[name='password']").first
+                            if pwd_inp.is_visible():
+                                logger.info("Entering password automatically...")
+                                pwd_inp.fill(password)
+                                time.sleep(0.5)
+                                pwd_inp.press("Enter")
+
+                        login_succeeded = False
+                        for _ in range(300):
+                            try:
+                                if "docs.google.com/forms" in page.url and "accounts.google.com" not in page.url:
+                                    logger.info("Login successful! Auto-saving session state to auth.json...")
+                                    time.sleep(2)
+                                    context.storage_state(path=str(self.auth_file))
+                                    login_succeeded = True
+                                    break
+                            except Exception:
+                                pass
+                            time.sleep(1)
+
+                        if not login_succeeded:
+                            self._take_screenshot(page, "interactive_login_timeout")
+                            raise FormAuthExpiredError("Interactive login timed out after 5 minutes.")
+                    else:
+                        logger.info("Redirected to Google sign-in / account chooser. Attempting automated re-authentication...")
+                        reauth_success = self._handle_google_reauth(page, context)
+                        if not reauth_success:
+                            self._take_screenshot(page, "auth_expired")
+                            raise FormAuthExpiredError(
+                                "Google authentication session has EXPIRED!\n"
+                                "SOLUTION:\n"
+                                "Re-run 'python main.py --login-and-run' or 'python main.py --setup-auth' on your laptop."
+                            )
 
                 page.wait_for_selector("form, div[role='heading'], div.freebirdFormviewqaFormrecConfirmationMessage", timeout=30000)
                 logger.info("Google Form loaded successfully.")
@@ -455,12 +505,12 @@ class FormHandler:
             finally:
                 browser.close()
 
-    def submit_form_with_retry(self, max_retries: int = 3, headless: bool = True) -> bool:
+    def submit_form_with_retry(self, max_retries: int = 3, headless: bool = True, interactive: bool = False) -> bool:
         """Attempts form submission up to max_retries times with delays between retries."""
         for attempt in range(1, max_retries + 1):
             logger.info(f"=== Starting Form Submission Attempt {attempt} of {max_retries} ===")
             try:
-                success = self.submit_form_once(headless=headless)
+                success = self.submit_form_once(headless=headless, interactive=interactive)
                 if success:
                     logger.info(f"Submission succeeded on attempt {attempt}.")
                     return True

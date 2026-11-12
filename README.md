@@ -64,19 +64,21 @@ git push
 
 ---
 
-### Step 4: One-Time Google Account Login Setup
+### Step 4: One-Time Google Account Login & Submission Setup
 
-Run the one-time authentication helper to log into your `@kalvium.community` account:
+You have two convenient ways to set up authentication:
 
+#### Option A: Quick Login & Immediate Submission (All-in-One)
+```bash
+python main.py --login-and-run
+```
+A browser window opens directly to the password prompt. Log in, and the bot will **automatically detect login**, save `auth.json`, and immediately submit the form!
+
+#### Option B: Authentication Setup Only
 ```bash
 python main.py --setup-auth
 ```
-
-1. A browser window will open loading your Google Form.
-2. Log into your `@kalvium.community` Google Account.
-3. Once your form is visible on screen, return to your terminal and press **ENTER**.
-4. Your login cookies are safely saved to `auth.json` on your laptop.
-
+Log into your Google Account. Once the form appears, the session is automatically saved to `auth.json`.
 ---
 
 ### Step 5: Add Secrets to GitHub Repository Secrets

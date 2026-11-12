@@ -2,6 +2,12 @@ import argparse
 import sys
 from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from config import AppConfig, ConfigValidationError
 from auth import setup_auth, is_auth_valid
 from form_handler import FormHandler
@@ -35,6 +41,12 @@ Examples:
     )
 
     parser.add_argument(
+        "--login-and-run",
+        action="store_true",
+        help="Launch visible browser for quick login, auto-detect login, save session, and immediately submit the form"
+    )
+
+    parser.add_argument(
         "--config",
         default="config.json",
         help="Path to configuration file (default: config.json)"
@@ -61,8 +73,8 @@ Examples:
         print(f"\n[ERROR] Configuration error: {e}\n")
         sys.exit(1)
 
-    # Check authentication session presence
-    if not is_auth_valid():
+    # Check authentication session presence (skipped if in login-and-run mode)
+    if not args.login_and_run and not is_auth_valid():
         logger.error("Authentication file 'auth.json' is missing or invalid.")
         print("\n" + "=" * 70)
         print("[ERROR] Authentication session ('auth.json') not found or expired!")
@@ -86,6 +98,18 @@ Examples:
             sys.exit(0)
         else:
             logger.error("Immediate form submission failed.")
+            sys.exit(1)
+
+    # Mode 3: Interactive Login and Submit (--login-and-run)
+    if args.login_and_run:
+        logger.info("Executing interactive login and form submission (--login-and-run)...")
+        handler = FormHandler(config)
+        success = handler.submit_form_with_retry(max_retries=1, headless=False, interactive=True)
+        if success:
+            logger.info("Interactive login and form submission completed successfully!")
+            sys.exit(0)
+        else:
+            logger.error("Interactive login and form submission failed.")
             sys.exit(1)
 
     # Mode 3: Default Daily Scheduler Mode

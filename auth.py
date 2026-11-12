@@ -68,18 +68,22 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
             headless=False,
             args=CHROMIUM_ARGS
         )
-        context = browser.new_context(
-            user_agent=DEFAULT_USER_AGENT,
-            viewport={"width": 1280, "height": 800},
-            locale="en-US",
-            timezone_id="Asia/Kolkata",
-            extra_http_headers={
+        context_kwargs = {
+            "user_agent": DEFAULT_USER_AGENT,
+            "viewport": {"width": 1280, "height": 800},
+            "locale": "en-US",
+            "timezone_id": "Asia/Kolkata",
+            "extra_http_headers": {
                 "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
                 "sec-ch-ua-mobile": "?0",
                 "sec-ch-ua-platform": '"Windows"',
                 "accept-language": "en-US,en;q=0.9"
             }
-        )
+        }
+        if auth_path.exists():
+            context_kwargs["storage_state"] = str(auth_path)
+
+        context = browser.new_context(**context_kwargs)
         context.add_init_script(STEALTH_INIT_SCRIPT)
         page = context.new_page()
 
@@ -87,12 +91,34 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
 
         print("\n" + "=" * 70)
         print("ACTION REQUIRED: Log into your Google Account in the opened browser window.")
-        print("Once you are logged in successfully and can see your Form or Google Dashboard,")
-        print("return here and press ENTER to save your session state.")
+        print("The script will automatically detect when login is complete, or you can press ENTER here.")
         print("=" * 70 + "\n")
 
         try:
-            input("Press ENTER when login is complete...")
+            import msvcrt
+            has_msvcrt = True
+        except ImportError:
+            has_msvcrt = False
+
+        login_detected = False
+        try:
+            for _ in range(300): # Wait up to 5 minutes
+                try:
+                    curr_url = page.url
+                    if "docs.google.com/forms" in curr_url and "accounts.google.com" not in curr_url and "signin" not in curr_url:
+                        logger.info("Auto-detected successful login to Google Form!")
+                        login_detected = True
+                        break
+                except Exception:
+                    pass
+
+                if has_msvcrt and msvcrt.kbhit():
+                    ch = msvcrt.getch()
+                    if ch in (b'\r', b'\n'):
+                        logger.info("User confirmed login by pressing ENTER.")
+                        break
+
+                time.sleep(1)
         except KeyboardInterrupt:
             logger.warning("Authentication setup cancelled by user.")
             browser.close()
