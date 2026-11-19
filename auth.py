@@ -101,6 +101,7 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
             has_msvcrt = False
 
         login_detected = False
+        target_account_email = "nitin.dhake.s73@kalvium.community"
         try:
             for _ in range(300): # Wait up to 5 minutes
                 try:
@@ -109,6 +110,19 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
                         logger.info("Auto-detected successful login to Google Form!")
                         login_detected = True
                         break
+                except Exception:
+                    pass
+
+                # Auto-click target account if on Account Chooser screen
+                try:
+                    account_btn = page.locator(
+                        f"div[role='link'][data-identifier='{target_account_email}'], "
+                        f"div[data-identifier='{target_account_email}'], "
+                        f"div[data-email='{target_account_email}']"
+                    ).first
+                    if account_btn.is_visible():
+                        logger.info(f"Auto-clicking account '{target_account_email}' on Account Chooser...")
+                        account_btn.click()
                 except Exception:
                     pass
 
