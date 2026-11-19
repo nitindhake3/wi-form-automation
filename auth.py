@@ -16,6 +16,7 @@ CHROMIUM_ARGS = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-infobars",
+    "--start-maximized",
     "--window-size=1280,900",
     "--disable-dev-shm-usage",
     "--disable-gpu",
@@ -102,6 +103,8 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
 
         login_detected = False
         target_account_email = "nitin.dhake.s73@kalvium.community"
+        account_clicked = False
+        password_entered = False
         try:
             for _ in range(300): # Wait up to 5 minutes
                 try:
@@ -113,18 +116,34 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
                 except Exception:
                     pass
 
-                # Auto-click target account if on Account Chooser screen
-                try:
-                    account_btn = page.locator(
-                        f"div[role='link'][data-identifier='{target_account_email}'], "
-                        f"div[data-identifier='{target_account_email}'], "
-                        f"div[data-email='{target_account_email}']"
-                    ).first
-                    if account_btn.is_visible():
-                        logger.info(f"Auto-clicking account '{target_account_email}' on Account Chooser...")
-                        account_btn.click()
-                except Exception:
-                    pass
+                # Auto-click target account if on Account Chooser screen (only once)
+                if not account_clicked:
+                    try:
+                        account_btn = page.locator(
+                            f"div[role='link'][data-identifier='{target_account_email}'], "
+                            f"div[data-identifier='{target_account_email}'], "
+                            f"div[data-email='{target_account_email}']"
+                        ).first
+                        if account_btn.is_visible():
+                            logger.info(f"Auto-clicking account '{target_account_email}' on Account Chooser...")
+                            account_btn.click()
+                            account_clicked = True
+                    except Exception:
+                        pass
+
+                # If password input is visible and password is in env, fill it automatically
+                password = (os.environ.get("AUTH_PASSWORD") or os.environ.get("PASSWORD") or os.environ.get("GOOGLE_PASSWORD") or "").strip()
+                if password and not password_entered:
+                    try:
+                        pwd_inp = page.locator("input[type='password'], input[name='Passwd'], input[name='password']").first
+                        if pwd_inp.is_visible():
+                            logger.info("Auto-filling password from environment...")
+                            pwd_inp.fill(password)
+                            time.sleep(0.5)
+                            pwd_inp.press("Enter")
+                            password_entered = True
+                    except Exception:
+                        pass
 
                 if has_msvcrt and msvcrt.kbhit():
                     ch = msvcrt.getch()

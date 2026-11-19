@@ -71,6 +71,7 @@ class FormHandler:
         target_email = self._extract_target_email()
         password = (
             os.environ.get("AUTH_PASSWORD")
+            or os.environ.get("GOOGLE_PASSWORD")
             or os.environ.get("PASSWORD")
             or ""
         ).strip()
@@ -362,7 +363,7 @@ class FormHandler:
                                 logger.info(f"Selecting account '{target_email}' to show password prompt...")
                                 account_btn.click()
 
-                        password = (os.environ.get("AUTH_PASSWORD") or os.environ.get("PASSWORD") or "").strip()
+                        password = (os.environ.get("AUTH_PASSWORD") or os.environ.get("GOOGLE_PASSWORD") or os.environ.get("PASSWORD") or "").strip()
                         if password:
                             time.sleep(2)
                             pwd_inp = page.locator("input[type='password'], input[name='Passwd'], input[name='password']").first
