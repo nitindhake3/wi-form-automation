@@ -1,9 +1,6 @@
 name: Daily Google Form Auto-Fill Bot
 
 on:
-  schedule:
-    # 05:30 UTC = 11:00 AM IST (Asia/Kolkata), Monday through Friday
-    - cron: '30 5 * * 1-5'
   workflow_dispatch:
 
 jobs:
