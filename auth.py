@@ -158,6 +158,12 @@ def setup_auth(auth_path: Path = AUTH_FILE, target_url: str = "https://accounts.
             browser.close()
             return False
 
+        if not login_detected:
+            logger.error("Authentication setup timed out or was not completed. Google Form was not reached.")
+            print("\n[ERROR] Login was not detected! Please ensure you enter your password and complete login in the browser.\n")
+            browser.close()
+            return False
+
         # Navigate to target form URL if available to ensure docs.google.com cookies are generated
         if target_url and "docs.google.com" in target_url:
             try:
